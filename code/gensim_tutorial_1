@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec  7 00:31:05 2018
+
+@author: SM
+
+@description: Do things on MSMARCO
+
+"""
+
+import logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+from gensim import corpora
+
+# Load small data
+
+proj_dir = "/Users/SM/DSI/classes/fall2018/SYS6018/FinalProject/"
+os.chdir(proj_dir)
+num_lines = sum(1 for l in open("data/collection.tsv"))
+passages_train = pd.read_table("data/collection.tsv", skiprows=range(100,num_lines))
+passages_train.columns = ['pid', 'passage']
+
+documents = passages_train.passage
+
+# remove common words and tokenize
+stoplist = set('for a of the and to in'.split())
+texts = [[word for word in document.lower().split() if word not in stoplist]
+         for document in documents]
+
+# remove words that appear only once
+from collections import defaultdict
+frequency = defaultdict(int)
+for text in texts:
+    for token in text:
+        frequency[token] += 1
+
+texts = [[token for token in text if frequency[token] > 1]
+         for text in texts]
+
+from pprint import pprint  # pretty-printer
+pprint(texts)
