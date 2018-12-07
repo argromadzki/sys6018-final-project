@@ -20,7 +20,9 @@ os.chdir(proj_dir)
 
 qrels_train = pd.read_table("data/qrels.train.tsv")
 queries_train = pd.read_table("data/queries.train.tsv")
-#passages_train = ps.read_table()
+
+num_lines = sum(1 for l in open("data/collection.tsv"))
+passages_train = pd.read_table("data/collection.tsv", skiprows=range(100000,num_lines))
 
 
 num_lines = sum(1 for l in open("data/top1000.dev.tsv"))
@@ -33,7 +35,7 @@ top1000dev_ids = pd.read_table("data/top1000.dev.tsv", usecols = [0,1])
 qrels_train.shape
 qrels_train.columns = ['qid', 'pid']
 qrels_train.head()
-sns.distplot(qrels_train.groupby(by=['qid']).count())
+sns.distplot(qrels_train.groupby(by=['qid']).count(), kde=False)
 
 #top1000dev_sample.shape
 #top1000dev_sample.columns = ['qid', 'pid', 'query', 'passage']
