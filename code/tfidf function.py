@@ -7,14 +7,14 @@ import nltk
 
 
 def tfidf (file_name):
-    
+
     # Set wd by going up from code and shared repo and into the "data" folder
     os.chdir("..//..//data") # make sure that if you are running this function multiple times in a file to comment this out
 
     file_table = pd.read_table(file_name+".tsv") # note, don't include tsv as an argument!!
 
     # clean columns
-    file_table.columns = ['qid', 'text']
+    file_table.columns = ['id', 'text']
 
     # tokenization
     porter = nltk.stem.porter.PorterStemmer()
