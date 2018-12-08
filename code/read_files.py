@@ -15,20 +15,24 @@ import seaborn as sns
 
 # Read in data
 
-proj_dir = "/Users/SM/DSI/classes/fall2018/SYS6018/FinalProject/"
-os.chdir(proj_dir)
+# proj_dir = "/Users/SM/DSI/classes/fall2018/SYS6018/FinalProject/"
+# os.chdir(proj_dir)
 
-qrels_train = pd.read_table("data/qrels.train.tsv")
-queries_train = pd.read_table("data/queries.train.tsv")
+data_dir = '..//..//data'
+os.chdir(data_dir)
+os.getcwd()
 
-num_lines = sum(1 for l in open("data/collection.tsv"))
-passages_train = pd.read_table("data/collection.tsv", skiprows=range(100000,num_lines))
+qrels_train = pd.read_table("qrels.train.tsv")
+queries_train = pd.read_table("queries.train.tsv")
+
+num_lines = sum(1 for l in open("collection.tsv"))
+passages_train = pd.read_table("collection.tsv", skiprows=range(100000,num_lines))
 
 
-num_lines = sum(1 for l in open("data/top1000.dev.tsv"))
+num_lines = sum(1 for l in open("top1000.dev.tsv"))
 
 skip_idx = [x for x in range(1, num_lines) if x % 100 != 0]
-top1000dev_ids = pd.read_table("data/top1000.dev.tsv", usecols = [0,1])
+top1000dev_ids = pd.read_table("top1000.dev.tsv", usecols = [0,1])
 
 # descriptive statistics
 
