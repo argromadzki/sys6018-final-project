@@ -26,8 +26,9 @@ queries_train['wva'] = queries_train['text'].apply(lambda x: sum(word2vec_pre[x]
 # now applything word vector averaging to collections using the same logic for queries
 passages = pd.read_table('data\collection.tsv', names = ['pid', 'text'])
 passages['text'] = passages['text'].apply(lambda x: x.split())
-passages['text'] = passages['text'].apply(lambda x: x[word for word in x if word in word2vec_pre.vocab])
+passages['text'] = passages['text'].apply(lambda x: [word for word in x if word in word2vec_pre.vocab])
 passages = queries_train[queries_train['text'].apply(lambda x: len(x)) > 0]
+passages['wva'] = passages['text'].apply(lambda x: sum(word2vec_pre[x])/len(x))
 
 
 #from keras.preprocessing.text import Tokenizer
