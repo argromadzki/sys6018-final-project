@@ -15,9 +15,10 @@ import sklearn
 import sklearn.feature_extraction
 import gensim
 import logging
+import numpy as np
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-from gensim import corpora
+from gensim import corpora, similarities, models
 
 # Load small data
 
@@ -36,14 +37,27 @@ query_test_text = query_test_text[query_test_text.notnull()]
 query_test_text = query_test_text.apply(lambda x: x.split(" "))
 
 # Create matrix in sklearn sparse matrix format
-vectorizer_min = sklearn.feature_extraction.text.CountVectorizer(min_df=.0005)
+vectorizer_min = sklearn.feature_extraction.text.CountVectorizer(min_df=.01)
 
 train_q_tdm_reduced = vectorizer_min.fit_transform(query_train_text.astype('U'))
 #passages_tdm_reduced = vectorizer_min.fit_transform(all_passages['newtext'].astype('U'))
 #test_q_tdm_reduced = vectorizer_min.transform(test_q['newtext'].astype('U'))
 
-
+# Convert corpus from sparse matrix format to corpus
 train_corpus = gensim.matutils.Sparse2Corpus(train_q_tdm_reduced, documents_columns=False)
+
+# Create TFIDF matrix from train corpus
+train_tfidf = models.TfidfModel(train_corpus)
+
+#train_corpus_tfidf = train_tfidf[train_corpus[5]]
+
+test_tdm_r = vectorizer_min.fit_transform(query_test_text.astype('U'))
+test_corpus = gensim.matutils.Sparse2Corpus(test_tdm_r, documents_columns=False)
+
+index = similarities.MatrixSimilarity(train_tfidf[train_corpus])
+
+sims = index[train_corpus]
+
 
 feature_names = vectorizer_min.get_feature_names()
 dictionary = {
@@ -51,7 +65,6 @@ dictionary = {
 }
 print(train_corpus)
 print(dictionary) 
-
 
 dictionary_train = corpora.Dictionary(query_train_text)
 dictionary_test = corpora.Dictionary(query_test_text)
