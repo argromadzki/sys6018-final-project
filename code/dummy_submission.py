@@ -2,6 +2,8 @@
 import numpy as np
 import pandas as pd
 import os
+import random
+
 os.chdir('C:\\Users\\alxgr\\Documents\\UVA\\DSI\\Fall 2018\\SYS\\Final Project\\data')
 
 df = pd.read_table('queries.train.tsv')
@@ -35,11 +37,24 @@ qp_rel_pairs.columns = ['qid','pid']
 qp_rel_pairs = qp_rel_pairs.astype(int)
 
 submission = submission.append(qp_rel_pairs , ignore_index=True)
+
+ranks = (list(range(1,1001)))
+random.shuffle(ranks)
+# ranks
+
+
+rankings = []
+for i in range(0,100):
+    random.shuffle(ranks)
+    rankings.extend(ranks)
+
+
+
+rankings.extend([1]*70)
+len(rankings)
+
+submission['ranking'] = rankings
 submission.to_csv('dummy_submission.tsv',sep='\t')
-
-
-
-
 
 
 
