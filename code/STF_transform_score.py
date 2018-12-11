@@ -8,12 +8,15 @@ Created on Mon Dec 10 19:08:25 2018
 @author: spm9r
 """
 
-runname = "temp" ###FIX parameterize this
-traintest = "test"
+#runname = "temp" ###FIX parameterize this
+runname = sys.argv[0]
+#traintest = "test"
+traintest = sys.argv[1]
 ###FIX parameterize whether to use query train or query test
 
 # Import modules
 import os
+import sys
 import pandas as pd
 import sklearn
 import sklearn.feature_extraction
@@ -55,7 +58,7 @@ def get_data_usePreProc(traintest):
     query_text = query_text.apply(lambda x: x.split(" "))
         
     num_lines = sum(1 for l in open("some_passages.csv"))
-    passages_text = pd.read_csv("some_passages.csv", index_col=0, skiprows=range(10000,num_lines))
+    passages_text = pd.read_csv("some_passages.csv", index_col=0, skiprows=range(100000,num_lines))
     passages_text = passages_text.set_index("pid").iloc[:,0]
     passages_text = passages_text[passages_text.notnull()]
     passages_text = passages_text.apply(lambda x: x.split(" "))
@@ -113,8 +116,13 @@ def do_ranking(qid, query):
     scores = scores.sort_values(ascending=False).head(1000)
     scores = scores[scores.values > 0]
     ranks = scores.rank(method='dense')
-    scores = pd.DataFrame('qid' = qid, 'pid' = scores.index, 'rank' = ranks)
+    scores_df = pd.DataFrame(pd.Series(np.repeat(qid, scores.count())))
+    scores_df['pid'] = scores.index
+    scores_df['rank'] = ranks.reset_index(drop=True)
+    scores_df.columns = ['qid', 'pid', 'rank']
+    return(scores_df)
 
 d = {qid: do_ranking(qid, q_corpus[i]) for i,qid in qids.iteritems()}
-
-
+results = pd.concat(d[k] for k in d.keys()).sort_values(['qid', 'rank'])
+out_name = os.path.join("/scratch/spm9r/tmp",runname,"query_scores.csv")
+results.to_csv(out_name, header=False, index=False)
