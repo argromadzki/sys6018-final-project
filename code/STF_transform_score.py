@@ -83,6 +83,9 @@ queries, passages = get_data_sets("usePreProc", traintest)
 pas_dictionary = corpora.Dictionary(passages)
 pas_dictionary.filter_extremes(keep_n = 1001)
 
+pids = pd.Series(passages.index)
+qids = pd.Series(queries.index)
+
 # Create passages corpus and serialize to disk
 p_corpus = [pas_dictionary.doc2bow(row) for row in passages]
 out_name = os.path.join("/scratch/spm9r/tmp",runname,"p_corpus.mm")
@@ -100,9 +103,18 @@ q_model, p_model = to_transformation("tfidf")
 
 # Calculate similarities
 index = similarities.MatrixSimilarity(p_model[p_corpus])
-sims = index[q_corpus]
-sims = sorted(enumerate(sims), key=lambda item: -item[1])
 
-print(sims)
+"""
+This function creates a dataframe for a query and qid with similarity ranked passages
+"""
+def do_ranking(qid, query):
+    scores = pd.Series(index[query])
+    scores.index = pids
+    scores = scores.sort_values(ascending=False).head(1000)
+    scores = scores[scores.values > 0]
+    ranks = scores.rank(method='dense')
+    scores = pd.DataFrame('qid' = qid, 'pid' = scores.index, 'rank' = ranks)
+
+d = {qid: do_ranking(qid, q_corpus[i]) for i,qid in qids.iteritems()}
 
 
