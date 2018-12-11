@@ -53,10 +53,12 @@ train_tfidf = models.TfidfModel(train_corpus)
 
 test_tdm_r = vectorizer_min.fit_transform(query_test_text.astype('U'))
 test_corpus = gensim.matutils.Sparse2Corpus(test_tdm_r, documents_columns=False)
+test_tfidf = models.TfidfModel(test_corpus)
 
-index = similarities.MatrixSimilarity(train_tfidf[train_corpus])
 
-sims = index[train_corpus]
+index = similarities.MatrixSimilarity(test_tfidf[test_corpus])
+
+sims = index[test_corpus[67]]
 
 
 feature_names = vectorizer_min.get_feature_names()
