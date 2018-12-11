@@ -8,12 +8,6 @@ Created on Mon Dec 10 19:08:25 2018
 @author: spm9r
 """
 
-#runname = "temp" ###FIX parameterize this
-runname = sys.argv[0]
-#traintest = "test"
-traintest = sys.argv[1]
-###FIX parameterize whether to use query train or query test
-
 # Import modules
 import os
 import sys
@@ -31,6 +25,16 @@ from gensim.parsing.preprocessing import remove_stopwords
 data_dir = data_dir = '/scratch/spm9r'
 os.chdir(data_dir)
 
+
+#runname = "temp" ###FIX parameterize this
+runname = sys.argv[1]
+#traintest = "test"
+traintest = sys.argv[2]
+###FIX parameterize whether to use query train or query test
+print(runname)
+print(traintest)
+
+
 # Read in all data files
 
 """
@@ -46,12 +50,14 @@ Helper funtion for get_data_steps; data has been stemmed, stripped and
 stopwords removed.
 """
 def get_data_usePreProc(traintest):
+    
     if(traintest == "train"):
-        num_lines = sum(1 for l in open("train_query_corpus"))
-        query_text = pd.read_csv("train_query_corpus.csv", index_col=0,  skiprows=range(10,num_lines))
+        num_lines = sum(1 for l in open("train_query_corpus.csv"))
+        query_text = pd.read_csv("train_query_corpus.csv", index_col=0,  skiprows=range(100,num_lines))
     elif(traintest == "test"):
         query_text = pd.read_csv("test_query_corpus.csv", index_col=0)
-        
+    else:
+        print("Need to correctly set the parameter")
     
     query_text = query_text.set_index("qid").iloc[:,2]
     query_text = query_text[query_text.notnull()]
@@ -119,10 +125,13 @@ def do_ranking(qid, query):
     scores_df = pd.DataFrame(pd.Series(np.repeat(qid, scores.count())))
     scores_df['pid'] = scores.index
     scores_df['rank'] = ranks.reset_index(drop=True)
+    scores_df['rank'] = scores_df['rank'].astype(int)
     scores_df.columns = ['qid', 'pid', 'rank']
     return(scores_df)
 
 d = {qid: do_ranking(qid, q_corpus[i]) for i,qid in qids.iteritems()}
 results = pd.concat(d[k] for k in d.keys()).sort_values(['qid', 'rank'])
+#results['rank'] = results.rank.astype(str)
 out_name = os.path.join("/scratch/spm9r/tmp",runname,"query_scores.csv")
-results.to_csv(out_name, header=False, index=False)
+results.to_csv(out_name, header=False, index=False, sep="\t")
+print("wrote ranking output to file")

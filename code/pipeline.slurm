@@ -10,6 +10,6 @@
 module purge
 module load anaconda3
 source activate gensim_env
-python3 ~/MS-MARCO-Analysis/code/STF_transform_score.py run1 train
-python3 ~/MS-MARCO-Analysis/msmarco_eval.py /scratch/spm9r/qrels.train.tsv /scratch/spm9r/tmp/temp/query_scores.csv
+python3 ~/MS-MARCO-Analysis/code/STF_transform_score.py 'run1' 'train'
+python3 ~/MS-MARCO-Analysis/msmarco_eval.py /scratch/spm9r/qrels.train.tsv /scratch/spm9r/tmp/run1/query_scores.csv
 
