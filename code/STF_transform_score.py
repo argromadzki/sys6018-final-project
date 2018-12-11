@@ -26,14 +26,18 @@ data_dir = data_dir = '/scratch/spm9r'
 os.chdir(data_dir)
 
 
-#runname = "temp" ###FIX parameterize this
+#runname = "temp"
 runname = sys.argv[1]
 #traintest = "test"
 traintest = sys.argv[2]
-###FIX parameterize whether to use query train or query test
+data_steps = sys.argv[3]
+modeltouse = sys.argv[4]
+termstokeep = sys.argv[5]
+
 print(runname)
 print(traintest)
-
+print(data_steps)
+print(modeltouse)
 
 # Read in all data files
 
@@ -44,6 +48,8 @@ the data sets. These steps are defined in separate functions.
 def get_data_sets(steps, traintest):
     if(steps == "usePreProc"):
         return(get_data_usePreProc(traintest))
+    elif(steps == "nostemPreProc"):
+        return(get_data_nostemPreProc(traintest))
 
 """
 Helper funtion for get_data_steps; data has been stemmed, stripped and 
@@ -53,7 +59,7 @@ def get_data_usePreProc(traintest):
     
     if(traintest == "train"):
         num_lines = sum(1 for l in open("train_query_corpus.csv"))
-        query_text = pd.read_csv("train_query_corpus.csv", index_col=0,  skiprows=range(100,num_lines))
+        query_text = pd.read_csv("train_query_corpus.csv", index_col=0,  skiprows=range(1000,num_lines))
     elif(traintest == "test"):
         query_text = pd.read_csv("test_query_corpus.csv", index_col=0)
     else:
@@ -63,8 +69,30 @@ def get_data_usePreProc(traintest):
     query_text = query_text[query_text.notnull()]
     query_text = query_text.apply(lambda x: x.split(" "))
         
-    num_lines = sum(1 for l in open("some_passages.csv"))
-    passages_text = pd.read_csv("some_passages.csv", index_col=0, skiprows=range(100000,num_lines))
+#    num_lines = sum(1 for l in open("some_passages.csv"))
+    passages_text = pd.read_csv("some_passages.csv", index_col=0) #, skiprows=range(100000,num_lines))
+    passages_text = passages_text.set_index("pid").iloc[:,0]
+    passages_text = passages_text[passages_text.notnull()]
+    passages_text = passages_text.apply(lambda x: x.split(" "))
+        
+    return((query_text, passages_text))
+    
+def get_data_nostemPreProc(traintest):
+    
+    if(traintest == "train"):
+        num_lines = sum(1 for l in open("train_query_corpus_nostem.csv"))
+        query_text = pd.read_csv("train_query_corpus_nostem.csv", index_col=0,  skiprows=range(1000,num_lines))
+    elif(traintest == "test"):
+        query_text = pd.read_csv("test_query_corpus_nostem.csv", index_col=0)
+    else:
+        print("Need to correctly set the parameter")
+    
+    query_text = query_text.set_index("qid").iloc[:,2]
+    query_text = query_text[query_text.notnull()]
+    query_text = query_text.apply(lambda x: x.split(" "))
+        
+#    num_lines = sum(1 for l in open("some_passages.csv"))
+    passages_text = pd.read_csv("some_passages.csv", index_col=0) #, skiprows=range(100000,num_lines))
     passages_text = passages_text.set_index("pid").iloc[:,0]
     passages_text = passages_text[passages_text.notnull()]
     passages_text = passages_text.apply(lambda x: x.split(" "))
@@ -74,23 +102,31 @@ def get_data_usePreProc(traintest):
 def to_transformation(tran):
     if(tran == "tfidf"):
         return(do_tfidf())
+    if(tran == 'lsi'):
+        return(do_lsi())
         
 def do_tfidf():
     # Create TFIDF matrix from passages corpus
-    p_tfidf = models.TfidfModel(p_corpus)
     q_tfidf = models.TfidfModel(q_corpus)
-    return(q_tfidf, p_tfidf)
+    p_tfidf = models.TfidfModel(p_corpus)
+    return((q_tfidf, p_tfidf))
 
+def do_lsi():
+    # Create LSI model from passages corpus
+    lsi = gensim.models.lsimodel.LsiModel(corpus=p_corpus, id2word=pas_dictionary, num_topics=1000)
+    q_lsi = lsi[q_corpus]
+    p_lsi = lsi[p_corpus]
+    return(q_lsi, p_lsi)
 
 
 # This is what will be the main function
 if not os.path.exists(os.path.join("/scratch/spm9r/tmp",runname)):
     os.makedirs(os.path.join("/scratch/spm9r/tmp",runname))
 
-queries, passages = get_data_sets("usePreProc", traintest)
+queries, passages = get_data_sets(data_steps, traintest)
 
 pas_dictionary = corpora.Dictionary(passages)
-pas_dictionary.filter_extremes(keep_n = 1001)
+pas_dictionary.filter_extremes(keep_n = int(termstokeep))
 
 pids = pd.Series(passages.index)
 qids = pd.Series(queries.index)
@@ -108,10 +144,10 @@ out_name = os.path.join("/scratch/spm9r/tmp",runname,"query_corpus.mm")
 corpora.MmCorpus.serialize(out_name, q_corpus)
 
 # Create models from passages and query files
-q_model, p_model = to_transformation("tfidf")
+q_model, p_model = to_transformation(modeltouse)
 
-# Calculate similarities
-index = similarities.MatrixSimilarity(p_model[p_corpus])
+q_model.save(os.path.join("/scratch/spm9r/tmp",runname,"query_model.model"))
+p_model.save(os.path.join("/scratch/spm9r/tmp",runname,"passage_model.model"))
 
 """
 This function creates a dataframe for a query and qid with similarity ranked passages
@@ -129,7 +165,14 @@ def do_ranking(qid, query):
     scores_df.columns = ['qid', 'pid', 'rank']
     return(scores_df)
 
-d = {qid: do_ranking(qid, q_corpus[i]) for i,qid in qids.iteritems()}
+# Calculate similarities
+if(modeltouse == 'tfidf'):
+    index = similarities.MatrixSimilarity(p_model[p_corpus])
+    d = {qid: do_ranking(qid, q_corpus[i]) for i,qid in qids.iteritems()}
+elif(modeltouse == 'lsi'):
+    index = similarities.MatrixSimilarity(p_model)
+    d = {qid: do_ranking(qid, q_model[i]) for i,qid in qids.iteritems()}
+
 results = pd.concat(d[k] for k in d.keys()).sort_values(['qid', 'rank'])
 #results['rank'] = results.rank.astype(str)
 out_name = os.path.join("/scratch/spm9r/tmp",runname,"query_scores.csv")
